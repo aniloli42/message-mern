@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt"
 import { generateTokens } from "../helpers/tokenHandler.js"
 import Auth from "../models/auth.model.js"
+import Token from "../models/token.model.js"
+import jwt from "jsonwebtoken"
 
 class AuthController {
   async loginUser(req, res) {
@@ -28,8 +30,9 @@ class AuthController {
       }
 
       const tokens = generateTokens(username)
+      await this.#saveToken(tokens.accessToken, username)
 
-      res.json(tokens)
+      res.json({ ...tokens, name: hasUser.name, username })
     } catch (error) {
       console.error(error.message)
       return res.status(400).json({ message: "Something Went Wrong!" })
@@ -60,11 +63,57 @@ class AuthController {
       })
 
       const tokens = generateTokens(username)
+      await this.#saveToken(tokens.accessToken, username)
+
+      res.json({ ...tokens, name, username })
+    } catch (error) {
+      console.error(error.message)
+      return res.status(400).json({ message: "Something Went Wrong!" })
+    }
+  }
+
+  async tokenUpdater(req, res) {
+    try {
+      const { accessToken } = req.body
+
+      const decodeResponse = jwt.verify(
+        accessToken,
+        process.env.JWT_ACCESS_TOKEN_SECRET_KEY
+      )
+
+      const tokenRes = await Token.findOne({
+        where: { username: decodeResponse.username, accessToken },
+      })
+
+      if (tokenRes == null) {
+        res.status(403).json({ message: "Invalid Token" })
+        return
+      }
+
+      const tokens = generateTokens(decodeResponse.username)
+
+      await Token.destroy({
+        where: { username: decodeResponse.username, accessToken },
+      })
+
+      await this.#saveToken(tokens.accessToken, decodeResponse.username)
 
       res.json(tokens)
     } catch (error) {
       console.error(error.message)
-      return res.status(400).json({ message: "Something Went Wrong!" })
+      return res.status(403).json({ message: "Invalid Token" })
+    }
+  }
+
+  async logout(req, res) {
+    try {
+      const accessToken = req.headers.accesstoken
+      await Token.destroy({ where: { username: res.username, accessToken } })
+      res.remove("x-token")
+      res.remove("x-refresh-token")
+      res.status(200).json({ status: true })
+    } catch (error) {
+      res.status(400).json({ message: "Something Went Wrong" })
     }
   }
 
@@ -74,6 +123,10 @@ class AuthController {
 
   async #verifyPassword(password, hashedPassword) {
     return await bcrypt.compare(password, hashedPassword)
+  }
+
+  async #saveToken(accessToken, username) {
+    await Token.create({ username, accessToken })
   }
 }
 

@@ -1,25 +1,21 @@
 import { DataTypes } from "sequelize"
 import sequelize from "../config/db.js"
 
-const Users = sequelize.define(
-  "user",
+const token = sequelize.define(
+  "token",
   {
     username: {
       type: DataTypes.STRING,
       allowNull: false,
-      primaryKey: true,
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    password: {
+    accessToken: {
       type: DataTypes.STRING,
       allowNull: false,
     },
   },
-  { timestamps: false }
+  {
+    updatedAt: false,
+  }
 )
 
-
-export default Users
+export default token
