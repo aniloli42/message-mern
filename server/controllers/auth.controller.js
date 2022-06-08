@@ -108,17 +108,48 @@ class AuthController {
   async logout(req, res) {
     try {
       const accessToken = req.headers.accesstoken
+
       await Token.destroy({ where: { username: res.username, accessToken } })
-      res.remove("x-token")
-      res.remove("x-refresh-token")
+
+      await Token.destroy({
+        where: {
+          username: res.username,
+          accessToken: res.get("x-refresh-token"),
+        },
+      })
+
+      res.set("x-token", null)
+      res.set("x-refresh-token", null)
       res.status(200).json({ status: true })
     } catch (error) {
+      console.error(error.message)
       res.status(400).json({ message: "Something Went Wrong" })
     }
   }
 
   async #hashPassword(password) {
     return await bcrypt.hash(password, 12)
+  }
+
+  async getUser(req, res) {
+    try {
+      const { username } = req.params
+
+      if (username == null)
+        return res.status(404).json({ message: "Username not found" })
+
+      const userResponse = await Auth.findByPk(username)
+
+      if (userResponse == null)
+        return res.status(401).json({ message: "User not found" })
+
+      res.status(200).json({
+        username: userResponse.username,
+        name: userResponse.name,
+      })
+    } catch (error) {
+      res.status(500).json({ message: error })
+    }
   }
 
   async #verifyPassword(password, hashedPassword) {

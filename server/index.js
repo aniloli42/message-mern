@@ -38,6 +38,14 @@ io.on("connection", (socket) => {
     updateOnlineUsers({ name, username, id: socket.id })
     io.emit("onlineUsers", onlineUsers)
   })
+
+  socket.on("send-message", (message, socketId, senderId) => {
+    io.to(socketId).emit("receive-message", message, senderId)
+  })
+
+  socket.on("message-call", (socketId) => {
+    io.to(socketId).emit("message-create")
+  })
 })
 
 app.get("/", (req, res) => {
@@ -46,7 +54,7 @@ app.get("/", (req, res) => {
 
 // routes
 app.use("/auth", authRoute)
-app.use("/message", messageRoute)
+app.use("/messages", messageRoute)
 
 // listening the app
 server.listen(8000, async () => {

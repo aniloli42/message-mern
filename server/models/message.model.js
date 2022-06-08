@@ -17,7 +17,7 @@ export const Chat = sequelize.define(
       allowNull: false,
     },
   },
-  { timestamps: false }
+  { updatedAt: false }
 )
 
 const Message = sequelize.define(

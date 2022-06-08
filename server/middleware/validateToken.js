@@ -32,6 +32,7 @@ export default async function validateToken(req, res, next) {
 
     next()
   } catch (error) {
-    res.status(401).json({ message: "Token Error" })
+    console.error(error.message)
+    res.status(405).json({ message: "Token Error" })
   }
 }
